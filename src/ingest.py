@@ -1,38 +1,51 @@
-import duckdb
-import pandas as pd
 from pathlib import Path
 
-DB_PATH = "data/processed/warehouse.duckdb"
+import duckdb
+import pandas as pd
 
-MOBILITY_PATH = "../berlin-mobility-pipeline/data/processed/bike_counts_2025_clean.parquet"
-WEATHER_PATH  = "../berlin-weather-pipeline/data/processed/weather_2025_historical.parquet"
+DB_PATH = Path("data/processed/warehouse.duckdb")
 
-def load_mobility(con):
+MOBILITY_PATH = Path("../berlin-mobility-pipeline/data/processed/bike_counts_2025_clean.parquet")
+WEATHER_PATH = Path("../berlin-weather-pipeline/data/processed/weather_2025_historical.parquet")
+
+
+def load_mobility(con: duckdb.DuckDBPyConnection) -> None:
+    """Load Berlin mobility data and create station, date, and fact tables."""
     df = pd.read_parquet(MOBILITY_PATH)
-    df["date_id"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
-    df["year"]       = pd.to_datetime(df["date"]).dt.year
-    df["month"]      = pd.to_datetime(df["date"]).dt.month
-    df["day"]        = pd.to_datetime(df["date"]).dt.day
-    df["is_weekend"] = pd.to_datetime(df["date"]).dt.weekday >= 5
 
-    # dim_station
-    stations = df[["station_id"]].drop_duplicates().reset_index(drop=True)
-    stations["station_id_int"] = range(1, len(stations) + 1)
+    df["date"] = pd.to_datetime(df["date"])
+    df["date_id"] = df["date"].dt.strftime("%Y-%m-%d")
+    df["year"] = df["date"].dt.year
+    df["month"] = df["date"].dt.month
+    df["day"] = df["date"].dt.day
+    df["weekday"] = df["date"].dt.weekday
+    df["is_weekend"] = df["weekday"] >= 5
+
     con.execute("""
-        CREATE TABLE IF NOT EXISTS dim_station AS
-        SELECT ROW_NUMBER() OVER () AS station_pk, station_id AS station_name
-        FROM (SELECT DISTINCT station_id FROM df)
+        CREATE OR REPLACE TABLE dim_station AS
+        SELECT
+            ROW_NUMBER() OVER () AS station_pk,
+            station_id AS station_name
+        FROM (
+            SELECT DISTINCT station_id
+            FROM df
+        )
     """)
 
-    # dim_date
     con.execute("""
-        CREATE TABLE IF NOT EXISTS dim_date AS
-        SELECT DISTINCT date_id, year, month, day, weekday, is_weekend FROM df
+        CREATE OR REPLACE TABLE dim_date AS
+        SELECT DISTINCT
+            date_id,
+            year,
+            month,
+            day,
+            weekday,
+            is_weekend
+        FROM df
     """)
 
-    # fact_bike_counts
     con.execute("""
-        CREATE TABLE IF NOT EXISTS fact_bike_counts AS
+        CREATE OR REPLACE TABLE fact_bike_counts AS
         SELECT
             ROW_NUMBER() OVER () AS count_id,
             date_id,
@@ -41,29 +54,45 @@ def load_mobility(con):
             hour
         FROM df
     """)
+
     print(f"✅ Mobility loaded: {len(df)} rows")
 
-def load_weather(con):
+
+def load_weather(con: duckdb.DuckDBPyConnection) -> None:
+    """Load Berlin weather data and create the weather dimension table."""
     df = pd.read_parquet(WEATHER_PATH)
-    df["date_id"] = pd.to_datetime(df["timestamp"]).dt.strftime("%Y-%m-%d")
+
+    df["timestamp"] = pd.to_datetime(df["timestamp"])
+    df["date_id"] = df["timestamp"].dt.strftime("%Y-%m-%d")
 
     con.execute("""
-        CREATE TABLE IF NOT EXISTS dim_weather AS
+        CREATE OR REPLACE TABLE dim_weather AS
         SELECT
             ROW_NUMBER() OVER () AS weather_id,
             date_id,
-            AVG(temperature_2m)  AS avg_temp_c,
-            SUM(precipitation)   AS total_precipitation_mm,
-            AVG(wind_speed_10m)  AS avg_wind_speed
+            AVG(temperature_2m) AS avg_temp_c,
+            SUM(precipitation) AS total_precipitation_mm,
+            AVG(wind_speed_10m) AS avg_wind_speed
         FROM df
         GROUP BY date_id
     """)
+
     print(f"✅ Weather loaded: {len(df)} rows")
 
+
+def main() -> None:
+    """Build the local DuckDB analytics warehouse."""
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    con = duckdb.connect(str(DB_PATH))
+
+    try:
+        load_mobility(con)
+        load_weather(con)
+        print("🎉 Warehouse built successfully!")
+    finally:
+        con.close()
+
+
 if __name__ == "__main__":
-    Path("data/processed").mkdir(parents=True, exist_ok=True)
-    con = duckdb.connect(DB_PATH)
-    load_mobility(con)
-    load_weather(con)
-    print("🎉 Warehouse built successfully!")
-    con.close()
+    main()
