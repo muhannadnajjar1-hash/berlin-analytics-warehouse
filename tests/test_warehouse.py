@@ -1,6 +1,5 @@
 import duckdb
 import pytest
-from pathlib import Path
 
 DB_PATH = "data/processed/warehouse.duckdb"
 
