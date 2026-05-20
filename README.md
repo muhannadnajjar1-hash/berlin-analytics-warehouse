@@ -1,59 +1,213 @@
 # Berlin Analytics Warehouse
 
-Ein lokales Analytics-Data-Warehouse, das Berliner Fahrradzähldaten mit Wetterdaten für das Jahr 2025 kombiniert.  
-Entwickelt mit DuckDB, Python und Pandas als Teil des **Berlin Data Engineering Lab** Portfolios.
+A local analytics warehouse that combines Berlin bike traffic data with historical Berlin weather data for 2025.
 
-## Projektübersicht
+This project is part of my **Berlin Data Engineering Lab** portfolio. It connects the outputs of two previous data pipeline projects and turns them into an analytics-ready DuckDB warehouse.
 
-- **Typ:** Lokales Data Warehouse / SQL Analytics
-- **Datenquellen:** Berlin Mobility Pipeline + Berlin Weather Pipeline
-- **Warehouse-Engine:** DuckDB
-- **Schema:** Sternschema
-- **Ziel:** Aufbau eines lokalen Analysemodells, um Fahrradzählungen gemeinsam mit Wetterdaten auszuwerten.
+## Project Purpose
 
-Dieses Projekt verbindet die Ergebnisse aus zwei vorherigen Data-Engineering-Projekten:
+The goal of this project is to show how separate data pipelines can be connected into one analytical data model.
 
-1. **Berlin Mobility Pipeline** — bereinigte Fahrradzähldaten
-2. **Berlin Weather Pipeline** — bereinigte historische Wetterdaten
+This project consumes the prepared outputs from:
 
-Das Ergebnis ist ein lokales DuckDB-Warehouse mit Fakt- und Dimensionstabellen für SQL-Analysen.
+1. **Berlin Mobility Pipeline**  
+   Produces cleaned Berlin bike counter data.
 
-## Architektur
+2. **Berlin Weather Pipeline**  
+   Produces cleaned historical Berlin weather data.
 
-1. Einlesen der bereinigten Fahrradzähldaten aus der Berlin Mobility Pipeline.
-2. Einlesen der bereinigten Wetterdaten aus der Berlin Weather Pipeline.
-3. Laden der Daten in DuckDB.
-4. Aufbau eines Sternschemas mit Fakt- und Dimensionstabellen.
-5. Ausführen von SQL-Abfragen für analytische Auswertungen.
+This project then combines both datasets into a local DuckDB warehouse for SQL-based analysis.
 
-## Warehouse-Modell
+## Data Flow
 
-Das Warehouse verwendet ein einfaches Sternschema:
+```text
+berlin-mobility-pipeline
+        │
+        │ bike_counts_2025_clean.parquet
+        ▼
+berlin-analytics-warehouse
+        ▲
+        │ weather_2025_historical.parquet
+        │
+berlin-weather-pipeline
+```
 
-- `fact_bike_counts` — zentrale Faktentabelle mit Fahrradzählungen
-- `dim_station` — Informationen zu Zählstationen
-- `dim_date` — Datumsdimension für Analysen nach Tag, Monat, Wochentag usw.
-- `dim_weather` — Wetterinformationen wie Temperatur, Wind und Niederschlag
+The warehouse creates a local DuckDB database:
 
-## Beispiel-Fragestellungen
+```text
+data/processed/warehouse.duckdb
+```
 
-Mit diesem Warehouse können unter anderem folgende Fragen analysiert werden:
+## Architecture
 
-- Welche Fahrrad-Zählstationen haben die höchsten Werte?
-- Wie verändert sich der Fahrradverkehr nach Wochentag?
-- Gibt es Unterschiede zwischen Werktagen und Wochenenden?
-- Wie hängt die Temperatur mit dem Fahrradverkehr zusammen?
-- Gibt es weniger Fahrradverkehr bei Regen oder starkem Wind?
-- Welche Monate zeigen die höchste Fahrradaktivität?
+1. Read cleaned bike count data from the Berlin Mobility Pipeline.
+2. Read cleaned weather data from the Berlin Weather Pipeline.
+3. Transform dates and create a shared `date_id` key.
+4. Load the prepared data into DuckDB.
+5. Build fact and dimension tables.
+6. Use SQL to analyze bike traffic together with weather conditions.
 
-## Projektstruktur
+## Warehouse Model
+
+The warehouse uses a simple star-schema-inspired model.
+
+### Fact Table
+
+| Table | Description |
+|---|---|
+| `fact_bike_counts` | Bike count observations by date, hour, and station |
+
+### Dimension Tables
+
+| Table | Description |
+|---|---|
+| `dim_station` | Bike counting stations |
+| `dim_date` | Calendar information such as year, month, day, weekday, and weekend flag |
+| `dim_weather` | Daily weather metrics such as average temperature, precipitation, and wind speed |
+
+## Example Analytical Questions
+
+This warehouse is designed to answer questions that require both mobility and weather data, for example:
+
+- Which bike counting stations have the highest total traffic?
+- How does bike traffic change by weekday?
+- Are weekends different from weekdays?
+- How does average temperature relate to bike traffic?
+- Is bike traffic lower on rainy or windy days?
+- Which months show the highest cycling activity?
+
+## Example SQL Analysis
+
+The following query joins bike traffic with daily weather metrics using the shared `date_id` key:
+
+```sql
+SELECT
+    f.date_id,
+    SUM(f.bike_count) AS total_bike_count,
+    w.avg_temp_c,
+    w.total_precipitation_mm,
+    w.avg_wind_speed
+FROM fact_bike_counts AS f
+JOIN dim_weather AS w
+    ON f.date_id = w.date_id
+GROUP BY
+    f.date_id,
+    w.avg_temp_c,
+    w.total_precipitation_mm,
+    w.avg_wind_speed
+ORDER BY f.date_id;
+```
+
+This type of query shows the main purpose of the project: connecting mobility and weather data for analytical use.
+
+## Project Structure
 
 ```text
 berlin-analytics-warehouse/
 ├── .github/workflows/     # GitHub Actions CI
-├── sql/                   # SQL-Abfragen und Warehouse-Logik
-├── src/                   # Python-Code zum Einlesen und Erstellen des Warehouses
-├── tests/                 # Lokale Tests
-├── README.md              # Projektdokumentation
-├── requirements.txt       # Python-Abhängigkeiten
+├── sql/                   # SQL analysis queries
+├── src/                   # Python warehouse build script
+├── tests/                 # Local tests
+├── README.md              # Project documentation
+├── requirements.txt       # Python dependencies
 └── .gitignore
+```
+
+## Local Setup
+
+Create and activate a virtual environment:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+## Required Input Files
+
+Before running this project, the first two projects must already have been executed locally.
+
+This project expects the following files:
+
+```text
+../berlin-mobility-pipeline/data/processed/bike_counts_2025_clean.parquet
+../berlin-weather-pipeline/data/processed/weather_2025_historical.parquet
+```
+
+These files are generated by:
+
+- `berlin-mobility-pipeline`
+- `berlin-weather-pipeline`
+
+They are not committed to this repository because they are generated data outputs.
+
+## Build the Warehouse
+
+Run:
+
+```bash
+python3 src/ingest.py
+```
+
+Expected output:
+
+```text
+data/processed/warehouse.duckdb
+```
+
+## Quality Checks
+
+Run Ruff:
+
+```bash
+ruff check .
+```
+
+Run local tests:
+
+```bash
+pytest tests/ -v
+```
+
+## Continuous Integration
+
+GitHub Actions currently runs Ruff checks.
+
+The full warehouse build and database tests are not yet executed in CI because they depend on generated output files from the first two local projects.
+
+A future improvement is to add small sample fixture data under `tests/fixtures/` so that CI can build and test a small warehouse automatically.
+
+## Current Limitations
+
+- The warehouse build depends on local outputs from two separate repositories.
+- Current tests depend on a locally generated DuckDB database.
+- CI currently checks code quality only.
+- SQL analysis outputs and charts still need to be expanded.
+
+## Future Improvements
+
+- Add `tests/fixtures/` with small sample mobility and weather datasets.
+- Update tests so GitHub Actions can build a temporary test warehouse.
+- Add SQL reports that clearly combine mobility and weather data.
+- Add charts such as bike traffic vs. temperature and rainy vs. non-rainy day traffic.
+- Add a data dictionary for all fact and dimension tables.
+- Consider Docker support for reproducible local execution.
+
+## Portfolio Context
+
+This is the third project in my Berlin Data Engineering Lab portfolio.
+
+```text
+Project 1: Berlin Mobility Pipeline
+        ↓
+Project 2: Berlin Weather Pipeline
+        ↓
+Project 3: Berlin Analytics Warehouse
+```
+
+Together, these projects show a progression from data ingestion and cleaning to analytical data modeling.
