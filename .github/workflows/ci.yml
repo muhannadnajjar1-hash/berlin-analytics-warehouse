@@ -23,10 +23,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run linting
-        run: ruff check src/
-
-      - name: Build warehouse
-        run: python3 src/ingest.py
+        run: ruff check .
 
       - name: Run tests
         run: pytest tests/ -v
