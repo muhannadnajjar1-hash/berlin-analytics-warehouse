@@ -1,37 +1,44 @@
+-- Schema reference for the Berlin Analytics Warehouse.
+-- These tables are created by src/ingest.py in DuckDB.
+
 -- Dimension: Station
-CREATE TABLE IF NOT EXISTS dim_station (
-    station_id   INTEGER PRIMARY KEY,
-    station_name TEXT NOT NULL,
-    location     TEXT
+CREATE OR REPLACE TABLE dim_station AS
+SELECT
+    ROW_NUMBER() OVER () AS station_pk,
+    station_id AS station_name
+FROM (
+    SELECT DISTINCT station_id
+    FROM df
 );
 
 -- Dimension: Date
-CREATE TABLE IF NOT EXISTS dim_date (
-    date_id    TEXT PRIMARY KEY,  -- format: YYYY-MM-DD
-    year       INTEGER,
-    month      INTEGER,
-    day        INTEGER,
-    weekday    TEXT,
-    is_weekend BOOLEAN
-);
+CREATE OR REPLACE TABLE dim_date AS
+SELECT DISTINCT
+    date_id,
+    year,
+    month,
+    day,
+    weekday,
+    is_weekend
+FROM df;
 
 -- Dimension: Weather
-CREATE TABLE IF NOT EXISTS dim_weather (
-    weather_id        INTEGER PRIMARY KEY,
-    date_id           TEXT,
-    avg_temp_c        FLOAT,
-    precipitation_mm  FLOAT,
-    weather_condition TEXT
-);
+CREATE OR REPLACE TABLE dim_weather AS
+SELECT
+    ROW_NUMBER() OVER () AS weather_id,
+    date_id,
+    AVG(temperature_2m) AS avg_temp_c,
+    SUM(precipitation) AS total_precipitation_mm,
+    AVG(wind_speed_10m) AS avg_wind_speed
+FROM df
+GROUP BY date_id;
 
 -- Fact: Bike Counts
-CREATE TABLE IF NOT EXISTS fact_bike_counts (
-    count_id    INTEGER PRIMARY KEY,
-    date_id     TEXT,
-    station_id  INTEGER,
-    weather_id  INTEGER,
-    bike_count  INTEGER,
-    FOREIGN KEY (date_id)    REFERENCES dim_date(date_id),
-    FOREIGN KEY (station_id) REFERENCES dim_station(station_id),
-    FOREIGN KEY (weather_id) REFERENCES dim_weather(weather_id)
-);
+CREATE OR REPLACE TABLE fact_bike_counts AS
+SELECT
+    ROW_NUMBER() OVER () AS count_id,
+    date_id,
+    station_id AS station_name,
+    bike_count,
+    hour
+FROM df;
