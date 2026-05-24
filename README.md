@@ -106,7 +106,8 @@ This type of query shows the main purpose of the project: connecting mobility an
 berlin-analytics-warehouse/
 ├── .github/workflows/     # GitHub Actions CI
 ├── sql/                   # SQL analysis queries
-├── src/                   # Python warehouse build script
+├── src/                   # Python warehouse build and report scripts
+├── Reports/figures/       # Generated analysis figures
 ├── tests/                 # Local tests
 ├── README.md              # Project documentation
 ├── requirements.txt       # Python dependencies
@@ -160,6 +161,28 @@ Expected output:
 data/processed/warehouse.duckdb
 ```
 
+## Generate Analysis Figures
+
+After building the warehouse, generate the analysis figures with:
+
+```bash
+python3 src/create_reports.py
+```
+
+The figures are saved under:
+
+```text
+Reports/figures/
+```
+
+Generated figures include:
+
+- `top_stations.png`
+- `monthly_trend.png`
+- `hourly_pattern.png`
+- `rain_vs_dry.png`
+- `daily_bike_traffic_vs_temperature.png`
+
 ## Quality Checks
 
 Run Ruff:
@@ -187,14 +210,13 @@ A future improvement is to add small sample fixture data under `tests/fixtures/`
 - The warehouse build depends on local outputs from two separate repositories.
 - Current tests depend on a locally generated DuckDB database.
 - CI currently checks code quality only.
-- SQL analysis outputs and charts still need to be expanded.
+- CI currently does not regenerate the warehouse or figures automatically.
 
 ## Future Improvements
 
 - Add `tests/fixtures/` with small sample mobility and weather datasets.
 - Update tests so GitHub Actions can build a temporary test warehouse.
-- Add SQL reports that clearly combine mobility and weather data.
-- Add charts such as bike traffic vs. temperature and rainy vs. non-rainy day traffic.
+- Add more SQL reports for deeper mobility and weather analysis.
 - Add a data dictionary for all fact and dimension tables.
 - Consider Docker support for reproducible local execution.
 
