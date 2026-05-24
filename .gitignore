@@ -1,12 +1,27 @@
+# macOS
 .DS_Store
+
+# Python cache
 __pycache__/
 *.pyc
+
+# Environment files
 .env
-data/processed/
 .venv/
-.idea/
+
+# Test/lint caches
 .pytest_cache/
 .ruff_cache/
-*.ipynb_checkpoints
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE/editor files
+.idea/
+.vscode/
+
+# Local/generated data
+data/processed/
+
+# Local Anaconda files
 anaconda_projects/
-.DS_Store
