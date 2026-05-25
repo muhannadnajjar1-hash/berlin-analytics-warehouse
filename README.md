@@ -1,8 +1,23 @@
 # Berlin Analytics Warehouse
 
-A local analytics warehouse that combines Berlin bike counter data with historical Berlin weather data for 2025.
+A local DuckDB analytics warehouse that combines Berlin bike counter data with historical Berlin weather data for 2025.
 
-This project is part of the **Berlin Data Engineering Lab** portfolio. It connects the outputs of two previous projects and turns them into an analytics-ready DuckDB warehouse with SQL analysis, reproducible report figures, and an exploratory insights notebook.
+This project is part of the **Berlin Data Engineering Lab** portfolio. It connects two upstream data pipeline projects and turns their outputs into an analytics-ready warehouse, reproducible report figures, and an exploratory insights notebook.
+
+The purpose of this project is not only to build tables, but to answer analytical questions about how bike traffic in Berlin changes over time and how it relates to weather conditions.
+
+## What This Project Demonstrates
+
+This project demonstrates an end-to-end local analytics workflow:
+
+- consuming prepared data outputs from two separate ETL pipelines
+- modeling the data in a DuckDB warehouse
+- joining mobility and weather data through a shared `date_id`
+- writing SQL queries for analytical questions
+- generating reproducible report figures
+- using a Jupyter notebook to explain insights, assumptions, and limitations
+
+The project shows how separate data engineering pipelines can be connected into a small but realistic analytics system.
 
 ## Project Overview
 
@@ -124,6 +139,7 @@ berlin-analytics-warehouse/
 │       ├── daily_bike_traffic_vs_temperature.png
 │       ├── bike_traffic_by_temperature_range.png
 │       ├── hourly_pattern.png
+│       ├── hourly_weekday_vs_weekend.png
 │       ├── monthly_trend.png
 │       ├── monthly_temperature.png
 │       ├── monthly_precipitation.png
@@ -198,6 +214,7 @@ Generated figures include:
 - `top_stations.png`
 - `monthly_trend.png`
 - `hourly_pattern.png`
+- `hourly_weekday_vs_weekend.png`
 - `rain_vs_dry.png`
 - `daily_bike_traffic_vs_temperature.png`
 
@@ -206,6 +223,7 @@ The exploratory notebook also generates additional figures:
 - `monthly_temperature.png`
 - `monthly_precipitation.png`
 - `weekday_vs_weekend.png`
+- `hourly_weekday_vs_weekend.png`
 - `bike_traffic_by_temperature_range.png`
 
 ## Exploratory Insights Notebook
@@ -232,18 +250,71 @@ The notebook shows how the three connected projects move from raw data pipelines
 
 ## Key Insights
 
-The exploratory analysis shows several important patterns:
+The exploratory analysis shows several patterns in Berlin bike traffic and weather data.
 
-- Bike traffic is highest in warmer months and lowest in winter.
-- June has the highest monthly bike traffic, while December has the lowest.
-- Hourly traffic patterns show clear daily peaks, especially around commuting times.
-- Weekday bike traffic is higher than weekend traffic.
-- A small number of stations record especially high traffic volumes.
-- Average daily temperature has a moderate positive relationship with daily bike traffic.
-- Rainy days show lower average bike traffic than dry days.
-- July has the highest monthly precipitation, mainly due to a few strong rain events rather than constant rain throughout the month.
+### 1. Bike traffic is seasonal
+
+Bike traffic is highest in warmer months and lowest in winter. The highest monthly traffic appears in **June**, with about **3.03 million bike counts**, while the lowest appears in **December**, with about **1.50 million bike counts**.
+
+This suggests that cycling activity in Berlin is strongly seasonal.
+
+### 2. Hourly traffic shows commuting patterns
+
+The hourly analysis shows clear peaks during typical mobility hours. A strong morning peak appears around **08:00**, and the highest traffic appears around **17:00–18:00**.
+
+The weekday vs weekend hourly comparison makes this clearer: weekday traffic has sharper commuting peaks, while weekend traffic increases more gradually during the day.
+
+### 3. Some stations dominate total traffic
+
+The busiest station, **05-FK-OBB-O**, records about **2.09 million bike counts**. This indicates that some counting locations represent especially important cycling corridors.
+
+A future improvement would be to enrich the station dimension with geographic metadata such as district, street name, or coordinates.
+
+### 4. Temperature is positively related to bike traffic
+
+Average daily temperature and total daily bike traffic show a moderate positive relationship, with a correlation of about **0.598**.
+
+This suggests that warmer days are generally associated with higher bike traffic. However, this does not prove that temperature alone causes the increase.
+
+### 5. Rainy days show lower average bike traffic
+
+Dry days show about **98 average bike counts**, while rainy days show about **84 average bike counts**.
+
+This suggests that precipitation may be associated with reduced cycling activity, although other factors such as temperature, seasonality, holidays, and weekday/weekend effects may also influence the result.
+
+### 6. Data validation is part of the analysis
+
+July has the highest monthly precipitation in the dataset. A daily check shows that this is mainly driven by a few strong rain events, not constant rain throughout the whole month.
+
+This step is important because it shows that the analysis does not only generate charts, but also checks whether surprising results are plausible.
 
 These insights are exploratory and should not be interpreted as proof of causality.
+
+## Selected Visual Outputs
+
+### Monthly bike traffic
+
+![Monthly bike traffic](Reports/figures/monthly_trend.png)
+
+This chart shows the seasonal pattern in Berlin bike traffic, with higher activity in warmer months and lower activity in winter.
+
+### Weekday vs weekend hourly traffic
+
+![Weekday vs weekend hourly traffic](Reports/figures/hourly_weekday_vs_weekend.png)
+
+This chart shows that weekday traffic has stronger morning and late-afternoon peaks, while weekend traffic follows a flatter daily pattern.
+
+### Bike traffic vs temperature
+
+![Bike traffic vs temperature](Reports/figures/daily_bike_traffic_vs_temperature.png)
+
+This chart shows the relationship between average daily temperature and total daily bike traffic.
+
+### Rainy vs dry days
+
+![Rainy vs dry days](Reports/figures/rain_vs_dry.png)
+
+This chart compares average bike traffic on rainy and dry days.
 
 ## SQL Analysis
 
@@ -331,7 +402,6 @@ The warehouse tests are currently run locally because they depend on the generat
 
 Planned improvements:
 
-- Add weekday vs weekend hourly comparison.
 - Add holiday and public event context.
 - Enrich station data with geographic metadata.
 - Compare station-level behavior across different weather conditions.
