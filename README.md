@@ -2,42 +2,26 @@
 
 A local DuckDB analytics warehouse that combines Berlin bike counter data with historical Berlin weather data for 2025.
 
-This project is part of the **Berlin Data Engineering Lab** portfolio. It connects two upstream data pipeline projects and turns their outputs into an analytics-ready warehouse, reproducible report figures, and an exploratory insights notebook.
+This project is part of the **Berlin Data Engineering Lab** portfolio. It connects two upstream pipeline projects and turns their outputs into an analytics-ready warehouse, reproducible report figures, SQL analysis, and an exploratory insights notebook.
 
 The purpose of this project is not only to build tables, but to answer analytical questions about how bike traffic in Berlin changes over time and how it relates to weather conditions.
 
-## What This Project Demonstrates
+---
 
-This project demonstrates an end-to-end local analytics workflow:
+## Project Highlights
 
-- consuming prepared data outputs from two separate ETL pipelines
-- modeling the data in a DuckDB warehouse
-- joining mobility and weather data through a shared `date_id`
-- writing SQL queries for analytical questions
-- generating reproducible report figures
-- using a Jupyter notebook to explain insights, assumptions, and limitations
+- Built a local DuckDB warehouse from two separate data pipeline outputs.
+- Modeled bike traffic, dates, stations, and weather data using a star-schema-inspired structure.
+- Connected mobility and weather data through a shared `date_id` key.
+- Generated reproducible report figures with Python.
+- Created an exploratory Jupyter notebook to explain patterns, assumptions, and limitations.
+- Added local tests, Ruff linting, and GitHub Actions for code quality.
 
-The project shows how separate data engineering pipelines can be connected into a small but realistic analytics system.
-
-## Project Overview
-
-**Type:** Local analytics warehouse  
-**Warehouse engine:** DuckDB  
-**Main language:** Python  
-**Analysis tools:** SQL, Pandas, Matplotlib, Jupyter Notebook  
-**Data model:** Star schema with fact and dimension tables  
-
-The goal of this project is to move beyond isolated ETL pipelines and create an analytics workflow that can answer questions such as:
-
-- How does bike traffic change by month, weekday, and hour?
-- Which bike counting stations record the highest traffic?
-- How does weather relate to daily bike traffic?
-- Are rainy days associated with lower cycling activity?
-- Are warmer days associated with higher bike traffic?
+---
 
 ## Connected Portfolio Workflow
 
-This project depends on local outputs from two connected portfolio projects.
+This project is the third step in a connected portfolio workflow:
 
 ```text
 Berlin Mobility Pipeline
@@ -51,9 +35,94 @@ Berlin Analytics Warehouse
 Berlin Weather Pipeline
 ```
 
-The warehouse combines the mobility and weather datasets through a shared `date_id` key.
+The first two projects prepare clean Parquet outputs. This project combines those outputs into a local analytical warehouse.
+
+---
+
+## Analytical Questions
+
+The warehouse and notebook are designed to answer questions such as:
+
+- How does bike traffic change by month, weekday, and hour?
+- Which bike counting stations record the highest traffic?
+- Are weekday commuting patterns different from weekend cycling behavior?
+- How does average daily temperature relate to bike traffic?
+- Are rainy days associated with lower cycling activity?
+- Can surprising weather results be validated with daily-level checks?
+
+---
+
+## Key Insights
+
+The exploratory analysis shows several patterns in Berlin bike traffic and weather data.
+
+### 1. Bike traffic is seasonal
+
+Bike traffic is highest in warmer months and lowest in winter. The highest monthly traffic appears in **June**, with about **3.03 million bike counts**, while the lowest appears in **December**, with about **1.50 million bike counts**.
+
+### 2. Weekday traffic shows commuting patterns
+
+Hourly traffic shows clear weekday peaks around **08:00** and **17:00–18:00**. Weekend traffic is flatter and increases more gradually during the day.
+
+This supports the interpretation that a significant part of weekday cycling is related to commuting, school, university, or other regular routines.
+
+### 3. Some stations dominate total traffic
+
+The busiest station, **05-FK-OBB-O**, records about **2.09 million bike counts**. This suggests that some counting locations represent especially important cycling corridors.
+
+### 4. Temperature is positively related to bike traffic
+
+Average daily temperature and total daily bike traffic show a moderate positive relationship, with a correlation of about **0.598**.
+
+Warmer days are generally associated with higher bike traffic, but this should not be interpreted as proof that temperature alone causes the increase.
+
+### 5. Rainy days show lower average bike traffic
+
+Dry days show about **98 average bike counts**, while rainy days show about **84 average bike counts**.
+
+This suggests that precipitation may be associated with reduced cycling activity, although temperature, seasonality, holidays, and weekday/weekend effects may also influence the result.
+
+### 6. Data validation is part of the analysis
+
+July has the highest monthly precipitation in the dataset. A daily check shows that this is mainly driven by a few strong rain events, not constant rain throughout the month.
+
+This step is important because it shows that the analysis does not only generate charts, but also checks whether surprising results are plausible.
+
+These insights are exploratory and should not be interpreted as proof of causality.
+
+---
+
+## Selected Visual Outputs
+
+### Monthly bike traffic
+
+<img src="Reports/figures/monthly_trend.png" alt="Monthly bike traffic" width="700">
+
+Bike traffic follows a clear seasonal pattern. The highest monthly traffic appears in **June** with about **3.03 million bike counts**, while the lowest appears in **December** with about **1.50 million bike counts**.
+
+### Weekday vs weekend hourly traffic
+
+<img src="Reports/figures/hourly_weekday_vs_weekend.png" alt="Weekday vs weekend hourly traffic" width="700">
+
+Weekday traffic shows strong peaks around **08:00** and **17:00–18:00**, while weekend traffic is flatter and rises more gradually during the day. This supports the interpretation of commuting-related weekday cycling.
+
+### Bike traffic vs temperature
+
+<img src="Reports/figures/daily_bike_traffic_vs_temperature.png" alt="Bike traffic vs temperature" width="700">
+
+The scatter plot shows a moderate positive relationship between temperature and bike traffic, with a correlation of about **0.598**. Warmer days are generally associated with higher bike traffic, but this does not prove causality.
+
+### Rainy vs dry days
+
+<img src="Reports/figures/rain_vs_dry.png" alt="Rainy vs dry days" width="700">
+
+Dry days show higher average bike traffic than rainy days, with about **98** average bike counts on dry days compared with about **84** on rainy days.
+
+---
 
 ## Data Sources
+
+This project depends on local outputs from two connected portfolio projects.
 
 ### 1. Berlin Mobility Pipeline
 
@@ -75,6 +144,8 @@ Expected input:
 
 This file contains historical hourly Berlin weather data for 2025.
 
+---
+
 ## Warehouse Output
 
 The warehouse is generated locally as a DuckDB database:
@@ -84,6 +155,8 @@ data/processed/warehouse.duckdb
 ```
 
 This file is generated by the project and is ignored by Git.
+
+---
 
 ## Warehouse Model
 
@@ -118,6 +191,8 @@ dim_station
 
 The central fact table is `fact_bike_counts`. It can be joined with `dim_date` and `dim_weather` through `date_id`.
 
+---
+
 ## Repository Structure
 
 ```text
@@ -151,6 +226,8 @@ berlin-analytics-warehouse/
         └── ci.yml
 ```
 
+---
+
 ## Setup
 
 Install the dependencies:
@@ -170,6 +247,8 @@ ruff
 jupyter
 pyarrow
 ```
+
+---
 
 ## Build the Warehouse
 
@@ -194,6 +273,8 @@ Mobility loaded: 306600 rows
 Weather loaded: 8760 rows
 Warehouse built successfully
 ```
+
+---
 
 ## Generate Analysis Figures
 
@@ -223,8 +304,9 @@ The exploratory notebook also generates additional figures:
 - `monthly_temperature.png`
 - `monthly_precipitation.png`
 - `weekday_vs_weekend.png`
-- `hourly_weekday_vs_weekend.png`
 - `bike_traffic_by_temperature_range.png`
+
+---
 
 ## Exploratory Insights Notebook
 
@@ -239,7 +321,7 @@ The notebook explores:
 - monthly bike traffic patterns
 - hourly bike traffic patterns
 - top bike counting stations
-- weekday vs weekend bike traffic
+- weekday vs weekend cycling behavior
 - monthly temperature and precipitation
 - daily bike traffic vs average temperature
 - rainy vs dry day comparison
@@ -248,73 +330,7 @@ The notebook explores:
 
 The notebook shows how the three connected projects move from raw data pipelines to analytical insights.
 
-## Key Insights
-
-The exploratory analysis shows several patterns in Berlin bike traffic and weather data.
-
-### 1. Bike traffic is seasonal
-
-Bike traffic is highest in warmer months and lowest in winter. The highest monthly traffic appears in **June**, with about **3.03 million bike counts**, while the lowest appears in **December**, with about **1.50 million bike counts**.
-
-This suggests that cycling activity in Berlin is strongly seasonal.
-
-### 2. Hourly traffic shows commuting patterns
-
-The hourly analysis shows clear peaks during typical mobility hours. A strong morning peak appears around **08:00**, and the highest traffic appears around **17:00–18:00**.
-
-The weekday vs weekend hourly comparison makes this clearer: weekday traffic has sharper commuting peaks, while weekend traffic increases more gradually during the day.
-
-### 3. Some stations dominate total traffic
-
-The busiest station, **05-FK-OBB-O**, records about **2.09 million bike counts**. This indicates that some counting locations represent especially important cycling corridors.
-
-A future improvement would be to enrich the station dimension with geographic metadata such as district, street name, or coordinates.
-
-### 4. Temperature is positively related to bike traffic
-
-Average daily temperature and total daily bike traffic show a moderate positive relationship, with a correlation of about **0.598**.
-
-This suggests that warmer days are generally associated with higher bike traffic. However, this does not prove that temperature alone causes the increase.
-
-### 5. Rainy days show lower average bike traffic
-
-Dry days show about **98 average bike counts**, while rainy days show about **84 average bike counts**.
-
-This suggests that precipitation may be associated with reduced cycling activity, although other factors such as temperature, seasonality, holidays, and weekday/weekend effects may also influence the result.
-
-### 6. Data validation is part of the analysis
-
-July has the highest monthly precipitation in the dataset. A daily check shows that this is mainly driven by a few strong rain events, not constant rain throughout the whole month.
-
-This step is important because it shows that the analysis does not only generate charts, but also checks whether surprising results are plausible.
-
-These insights are exploratory and should not be interpreted as proof of causality.
-
-## Selected Visual Outputs
-
-### Monthly bike traffic
-
-![Monthly bike traffic](Reports/figures/monthly_trend.png)
-
-This chart shows the seasonal pattern in Berlin bike traffic, with higher activity in warmer months and lower activity in winter.
-
-### Weekday vs weekend hourly traffic
-
-![Weekday vs weekend hourly traffic](Reports/figures/hourly_weekday_vs_weekend.png)
-
-This chart shows that weekday traffic has stronger morning and late-afternoon peaks, while weekend traffic follows a flatter daily pattern.
-
-### Bike traffic vs temperature
-
-![Bike traffic vs temperature](Reports/figures/daily_bike_traffic_vs_temperature.png)
-
-This chart shows the relationship between average daily temperature and total daily bike traffic.
-
-### Rainy vs dry days
-
-![Rainy vs dry days](Reports/figures/rain_vs_dry.png)
-
-This chart compares average bike traffic on rainy and dry days.
+---
 
 ## SQL Analysis
 
@@ -353,6 +369,8 @@ GROUP BY
 ORDER BY f.date_id;
 ```
 
+---
+
 ## Quality Checks
 
 Run tests locally with:
@@ -377,6 +395,8 @@ ruff check .
 git status
 ```
 
+---
+
 ## Continuous Integration
 
 GitHub Actions runs Ruff linting on each push and pull request to the `main` branch.
@@ -389,6 +409,8 @@ ruff check .
 
 The warehouse tests are currently run locally because they depend on the generated local DuckDB database.
 
+---
+
 ## Current Limitations
 
 - The analysis is exploratory and does not prove causality.
@@ -397,6 +419,8 @@ The warehouse tests are currently run locally because they depend on the generat
 - The station dimension currently uses station IDs but does not include geographic metadata such as district, coordinates, or street names.
 - The warehouse currently depends on locally generated outputs from the first two projects.
 - CI currently does not rebuild the warehouse or run warehouse tests automatically.
+
+---
 
 ## Next Steps
 
@@ -408,6 +432,8 @@ Planned improvements:
 - Add small fixture datasets so warehouse tests can run in GitHub Actions.
 - Build a FastAPI layer to query the warehouse data.
 - Connect the project outputs to a portfolio website.
+
+---
 
 ## Portfolio Context
 
